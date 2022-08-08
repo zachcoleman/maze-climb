@@ -4,19 +4,60 @@ use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 
 #[wasm_bindgen]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Wall {
     No,
     Yes,
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Cell {
     Left: Wall,
     Right: Wall,
     Up: Wall,
     Down: Wall,
+}
+
+#[derive(Properties, PartialEq)]
+pub struct CellProps {
+    cell: Cell,
+}
+
+#[function_component(CellComponent)]
+fn html_cell(CellProps { cell }: &CellProps) -> Html {
+    html! {
+        <svg width="80" height="80">
+            if cell.Left == Wall::Yes{
+                <rect x="0" y="0" width="10" height="80"
+                style="fill:blue;stroke:black;stroke-width:5;fill-opacity:0.9;stroke-opacity:0.9" />
+            } else {
+                <rect x="0" y="0" width="10" height="80"
+                style="fill:blue;stroke:black;stroke-width:5;fill-opacity:0.1;stroke-opacity:0.1" />
+            }
+            if cell.Right == Wall::Yes{
+                <rect x="70" y="0" width="10" height="80"
+                style="fill:blue;stroke:black;stroke-width:5;fill-opacity:0.9;stroke-opacity:0.9" />
+            } else{
+                <rect x="70" y="0" width="10" height="80"
+                style="fill:blue;stroke:black;stroke-width:5;fill-opacity:0.1;stroke-opacity:0.1" />
+            }
+            if cell.Up == Wall::Yes{
+                <rect x="0" y="0" width="80" height="10"
+                style="fill:blue;stroke:black;stroke-width:5;fill-opacity:0.9;stroke-opacity:0.9" />
+            }else{
+                <rect x="0" y="0" width="80" height="10"
+                style="fill:blue;stroke:black;stroke-width:5;fill-opacity:0.1;stroke-opacity:0.1" />
+            }
+            if cell.Down == Wall::Yes{
+                <rect x="0" y="70" width="80" height="10"
+                style="fill:blue;stroke:black;stroke-width:5;fill-opacity:0.9;stroke-opacity:0.9" />
+            }else{
+                <rect x="0" y="70" width="80" height="10"
+                style="fill:blue;stroke:black;stroke-width:5;fill-opacity:0.1;stroke-opacity:0.1" />
+            }
+        </svg>
+    }
 }
 
 #[wasm_bindgen]
@@ -84,10 +125,6 @@ impl Maze {
         }
     }
 
-    // pub fn get_cell(&mut self, p: Position) -> &mut Cell{
-    //     &mut self.grid[p.r*self.N + p.c]
-    // }
-
     pub fn cut_up_maze(&mut self) {
         // since our closure mutates self we must get all
         // our constants and information
@@ -134,29 +171,30 @@ impl Maze {
             let mut cell = self.grid[p.r * self.N + p.c];
             let dir = neighbor_dirs[thread_rng().gen_range(0..neighbor_dirs.len())];
             let new_pos = p.apply_move(dir).unwrap();
-
             match dir {
                 Direction::Left => {
-                    cell.Left = Wall::No;
+                    self.grid[p.r * self.N + p.c].Left = Wall::No;
                     self.grid[new_pos.r * self.N + new_pos.c].Right = Wall::No;
                 }
                 Direction::Right => {
-                    cell.Right = Wall::No;
+                    self.grid[p.r * self.N + p.c].Right = Wall::No;
                     self.grid[new_pos.r * self.N + new_pos.c].Left = Wall::No;
                 }
                 Direction::Down => {
-                    cell.Down = Wall::No;
+                    self.grid[p.r * self.N + p.c].Down = Wall::No;
                     self.grid[new_pos.r * self.N + new_pos.c].Up = Wall::No;
                 }
                 Direction::Up => {
-                    cell.Up = Wall::No;
+                    self.grid[p.r * self.N + p.c].Up = Wall::No;
                     self.grid[new_pos.r * self.N + new_pos.c].Down = Wall::No;
                 }
             }
+            log::info!("{:?}, {:?}", p, self.grid[p.r * N + p.c]);
+            log::info!("{:?}, {:?}", new_pos, self.grid[new_pos.r * N + new_pos.c]);
             Some(new_pos)
         };
 
-        let max_depth = M * N / 3;
+        let max_depth = usize::max((M * N) / 2, 4);
         let mut depth_count = 0;
         while visited.len() < num_cells {
             match (
@@ -187,48 +225,33 @@ impl Maze {
         p.r < self.M && p.c < self.N
     }
 
-    pub fn pretty_render(&self) -> String {
-        let mut s: String = String::from("");
+    pub fn console_render(&self) -> String {
+        let mut s: String = String::from("\n");
         for row_num in 0..self.M {
             let mut top_row = String::from(" ");
-            // let mut mid_row = String::from("");
             let mut mid_row = String::from("|");
-            let mut bot_row = String::from(" ");
             for j in 0..self.N {
                 let cell = self.grid[row_num * self.N + j];
                 match cell.Up {
                     Wall::No => {
-                        top_row += "   ";
+                        top_row += "...";
                     }
                     Wall::Yes => {
-                        top_row += " _ ";
+                        top_row += "._.";
                     }
                 }
                 match (cell.Left, cell.Right) {
                     (_, Wall::No) => {
-                        mid_row += "   ";
+                        mid_row += "...";
                     }
                     (_, Wall::Yes) => {
-                        mid_row += "  |";
-                    } // (Wall::No, Wall::No) => { mid_row += "   "; }
-                      // (Wall::No, Wall::Yes) => { mid_row += "  |"; }
-                      // (Wall::Yes, Wall::No) => { mid_row += "|  "; }
-                      // (Wall::Yes, Wall::Yes) => { mid_row += "| |"; }
-                }
-                match cell.Down {
-                    Wall::No => {
-                        bot_row += "   ";
-                    }
-                    Wall::Yes => {
-                        bot_row += " ‾ ";
+                        mid_row += "..|";
                     }
                 }
             }
             s += &(top_row + "\n");
             s += &(mid_row + "\n");
-            // s += &(bot_row + "\n");
         }
-        // add nice bottom
         s += &" ";
         s += &(" _ ".repeat(self.N));
         s
@@ -237,23 +260,27 @@ impl Maze {
 
 #[function_component(App)]
 fn app() -> Html {
-    let mut maze = Maze::new(6, 6);
-    let before = maze.pretty_render().to_string();
-    maze.cut_up_maze();
-    let after = maze.pretty_render().to_string();
+    wasm_logger::init(wasm_logger::Config::default());
 
+    let mut maze = Maze::new(10, 10);
+    maze.cut_up_maze();
+    log::info!("{}", maze.console_render().to_string());
+
+    let mut maze_rows = vec![];
+    for row_num in 0..maze.M {
+        maze_rows.push(html! {
+            <p style="margin:0; padding:0;" >
+                {
+                    maze.grid[row_num*maze.N..(row_num+1)*maze.N].iter().map(|cell| html!{
+                        < CellComponent cell={ cell.clone() } />
+                    }).collect::<Html>()
+                }
+            </p>
+        });
+    }
     html! {
         <>
-            <svg width="1600" height="1600">
-                <rect x="0" y="0" width="10" height="80"
-                style="fill:black;stroke:black;stroke-width:5;fill-opacity:0.9;stroke-opacity:0.9" />
-                <rect x="70" y="0" width="10" height="80"
-                style="fill:black;stroke:black;stroke-width:5;fill-opacity:0.9;stroke-opacity:0.9" />
-                <rect x="0" y="0" width="80" height="10"
-                style="fill:black;stroke:black;stroke-width:5;fill-opacity:0.9;stroke-opacity:0.9" />
-                <rect x="0" y="70" width="80" height="10"
-                style="fill:black;stroke:black;stroke-width:5;fill-opacity:0.9;stroke-opacity:0.9" />
-            </svg>
+            { maze_rows }
         </>
     }
 }

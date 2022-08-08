@@ -1,7 +1,7 @@
 TODO
 () render maze
 () get a path from user input in web
-() validate a path (dfs against visted set)
+() validate a path (dfs against path set)
 () restart button
 () make a timer
 () make a score 
