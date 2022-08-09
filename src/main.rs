@@ -1,16 +1,13 @@
 use rand::{thread_rng, Rng};
 use std::collections::HashSet;
-use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 
-#[wasm_bindgen]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Wall {
     No,
     Yes,
 }
 
-#[wasm_bindgen]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Cell {
     Left: Wall,
@@ -60,7 +57,6 @@ fn html_cell(CellProps { cell }: &CellProps) -> Html {
     }
 }
 
-#[wasm_bindgen]
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Direction {
     Left,
@@ -69,14 +65,12 @@ pub enum Direction {
     Down,
 }
 
-#[wasm_bindgen]
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct Position {
     r: usize,
     c: usize,
 }
 
-#[wasm_bindgen]
 impl Position {
     pub fn apply_move(self, dir: Direction) -> Option<Position> {
         match dir {
@@ -100,7 +94,6 @@ impl Position {
     }
 }
 
-#[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct Maze {
     M: usize,
@@ -108,7 +101,6 @@ pub struct Maze {
     grid: Vec<Cell>,
 }
 
-#[wasm_bindgen]
 impl Maze {
     pub fn new(M: usize, N: usize) -> Self {
         Maze {
@@ -262,7 +254,7 @@ impl Maze {
 fn app() -> Html {
     wasm_logger::init(wasm_logger::Config::default());
 
-    let mut maze = Maze::new(10, 10);
+    let mut maze = Maze::new(10, 16);
     maze.cut_up_maze();
     log::info!("{}", maze.console_render().to_string());
 
