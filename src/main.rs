@@ -117,6 +117,10 @@ impl Maze {
         }
     }
 
+    pub fn reset_maze(&mut self) {
+        *self = Self::new(self.M, self.N);
+    }
+
     pub fn cut_up_maze(&mut self) {
         // since our closure mutates self we must get all
         // our constants and information
@@ -250,11 +254,60 @@ impl Maze {
     }
 }
 
+pub enum Msg {
+    Reset,
+}
+
+impl Component for Maze {
+    type Message = Msg;
+    type Properties = ();
+
+    fn create(_ctx: &Context<Self>) -> Self {
+        let mut maze = Maze::new(10, 10);
+        maze.cut_up_maze();
+        maze
+    }
+
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+        match msg {
+            Msg::Reset => {
+                self.reset_maze();
+                self.cut_up_maze();
+                true
+            }
+        }
+    }
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        // This gives us a component's "`Scope`" which allows us to send messages, etc to the component.
+        let link = ctx.link();
+
+        // get maze rows
+        let mut maze_rows = vec![];
+        for row_num in 0..self.M {
+            maze_rows.push(html! {
+                <p style="margin:0; padding:0;" >
+                    {
+                        self.grid[row_num*self.N..(row_num+1)*self.N].iter().map(|cell| html!{
+                            < CellComponent cell={ cell.clone() } />
+                        }).collect::<Html>()
+                    }
+                </p>
+            });
+        }
+        html! {
+            <div>
+                { maze_rows }
+                <button onclick={link.callback(|_| Msg::Reset)}>{ "Reset Maze" }</button>
+            </div>
+        }
+    }
+}
+
 #[function_component(App)]
 fn app() -> Html {
     wasm_logger::init(wasm_logger::Config::default());
 
-    let mut maze = Maze::new(10, 16);
+    let mut maze = Maze::new(14, 20);
     maze.cut_up_maze();
     log::info!("{}", maze.console_render().to_string());
 
@@ -278,5 +331,6 @@ fn app() -> Html {
 }
 
 fn main() {
-    yew::start_app::<App>();
+    yew::start_app::<Maze>();
+    // yew::start_app::<App>();
 }
