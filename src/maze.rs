@@ -1,29 +1,31 @@
 use rand::{thread_rng, Rng};
 use std::collections::HashSet;
 use yew::prelude::*;
+use yew::Callback;
 
-use crate::cell::{Cell, CellComponent, Wall};
+use crate::cell::{Cell, CellView, Wall};
 use crate::position::{Direction, Position};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Maze {
-    M: usize,
-    N: usize,
-    grid: Vec<Cell>,
+    pub m: usize,
+    pub n: usize,
+    pub cells: Vec<Cell>,
 }
 
 impl Maze {
     /// constructor for a completely closed-off Maze
-    pub fn new(M: usize, N: usize) -> Self {
+    pub fn new(m: usize, n: usize) -> Self {
         Maze {
-            M: M,
-            N: N,
-            grid: (0..M * N)
+            m: m,
+            n: n,
+            cells: (0..m * n)
                 .map(|_| Cell {
-                    Left: Wall::Yes,
-                    Right: Wall::Yes,
-                    Up: Wall::Yes,
-                    Down: Wall::Yes,
+                    left: Wall::Yes,
+                    right: Wall::Yes,
+                    up: Wall::Yes,
+                    down: Wall::Yes,
+                    clicked: false,
                 })
                 .collect(),
         }
@@ -31,17 +33,16 @@ impl Maze {
 
     /// make a Maze like a new closed-off Maze
     pub fn reset_maze(&mut self) {
-        *self = Self::new(self.M, self.N);
+        *self = Self::new(self.m, self.n);
     }
 
-    // TODO: make this configurable
     /// randomize the Maze with paths
-    pub fn cut_up_maze(&mut self) {
+    pub fn cut_up_maze(&mut self, max_depth: usize) {
         // since our closure mutates self we must get all
         // our constants and information in variables prior
         // to the mutable borrow in closure
-        let num_cells = self.M * self.N;
-        let (M, N) = (self.M, self.N);
+        let num_cells = self.m * self.n;
+        let (m, n) = (self.m, self.n);
         let mut pos = Position { r: 0, c: 0 };
         let mut visited: HashSet<Position> = HashSet::new();
 
@@ -79,33 +80,29 @@ impl Maze {
 
             // get mutable reference to cell
             // and get random direction to neighbor
-            let mut cell = self.grid[p.r * self.N + p.c];
             let dir = neighbor_dirs[thread_rng().gen_range(0..neighbor_dirs.len())];
             let new_pos = p.apply_move(dir).unwrap();
             match dir {
                 Direction::Left => {
-                    self.grid[p.r * self.N + p.c].Left = Wall::No;
-                    self.grid[new_pos.r * self.N + new_pos.c].Right = Wall::No;
+                    self.cells[p.r * self.n + p.c].left = Wall::No;
+                    self.cells[new_pos.r * self.n + new_pos.c].right = Wall::No;
                 }
                 Direction::Right => {
-                    self.grid[p.r * self.N + p.c].Right = Wall::No;
-                    self.grid[new_pos.r * self.N + new_pos.c].Left = Wall::No;
+                    self.cells[p.r * self.n + p.c].right = Wall::No;
+                    self.cells[new_pos.r * self.n + new_pos.c].left = Wall::No;
                 }
                 Direction::Down => {
-                    self.grid[p.r * self.N + p.c].Down = Wall::No;
-                    self.grid[new_pos.r * self.N + new_pos.c].Up = Wall::No;
+                    self.cells[p.r * self.n + p.c].down = Wall::No;
+                    self.cells[new_pos.r * self.n + new_pos.c].up = Wall::No;
                 }
                 Direction::Up => {
-                    self.grid[p.r * self.N + p.c].Up = Wall::No;
-                    self.grid[new_pos.r * self.N + new_pos.c].Down = Wall::No;
+                    self.cells[p.r * self.n + p.c].up = Wall::No;
+                    self.cells[new_pos.r * self.n + new_pos.c].down = Wall::No;
                 }
             }
-            log::info!("{:?}, {:?}", p, self.grid[p.r * N + p.c]);
-            log::info!("{:?}, {:?}", new_pos, self.grid[new_pos.r * N + new_pos.c]);
             Some(new_pos)
         };
 
-        let max_depth = usize::max((M * N) / 2, 4);
         let mut depth_count = 0;
         while visited.len() < num_cells {
             match (
@@ -118,8 +115,8 @@ impl Maze {
                 }
                 _ => {
                     depth_count = 0;
-                    'outer: for i in 0..M {
-                        for j in 0..N {
+                    'outer: for i in 0..m {
+                        for j in 0..n {
                             let p = Position { r: i, c: j };
                             if !visited.contains(&p) {
                                 pos = p;
@@ -133,39 +130,7 @@ impl Maze {
     }
 
     pub fn is_position_valid(&self, p: Position) -> bool {
-        p.r < self.M && p.c < self.N
-    }
-
-    pub fn console_render(&self) -> String {
-        let mut s: String = String::from("\n");
-        for row_num in 0..self.M {
-            let mut top_row = String::from(" ");
-            let mut mid_row = String::from("|");
-            for j in 0..self.N {
-                let cell = self.grid[row_num * self.N + j];
-                match cell.Up {
-                    Wall::No => {
-                        top_row += "...";
-                    }
-                    Wall::Yes => {
-                        top_row += "._.";
-                    }
-                }
-                match (cell.Left, cell.Right) {
-                    (_, Wall::No) => {
-                        mid_row += "...";
-                    }
-                    (_, Wall::Yes) => {
-                        mid_row += "..|";
-                    }
-                }
-            }
-            s += &(top_row + "\n");
-            s += &(mid_row + "\n");
-        }
-        s += &" ";
-        s += &(" _ ".repeat(self.N));
-        s
+        p.r < self.m && p.c < self.n
     }
 }
 
@@ -173,43 +138,48 @@ pub enum Msg {
     Reset,
 }
 
-#[derive(Clone, PartialEq, Properties)]
-pub struct MazeProps {
-    pub M: usize,
-    pub N: usize,
+pub struct MazeView;
+
+#[derive(Clone, Debug, PartialEq, Properties)]
+pub struct MazeViewProps {
+    pub maze: Maze,
+    pub click_callback: Callback<(usize, usize)>,
+    pub reset_callback: Callback<()>,
 }
 
-impl Component for Maze {
+impl Component for MazeView {
     type Message = Msg;
-    type Properties = MazeProps;
+    type Properties = MazeViewProps;
 
-    fn create(ctx: &Context<Self>) -> Self {
-        let mut maze = Maze::new(ctx.props().M, ctx.props().N);
-        maze.cut_up_maze();
-        maze
+    fn create(_ctx: &Context<Self>) -> Self {
+        Self
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::Reset => {
-                self.reset_maze();
-                self.cut_up_maze();
+                ctx.props().reset_callback.emit(());
                 true
             }
         }
     }
-    fn view(&self, ctx: &Context<Self>) -> Html {
-        // This gives us a component's "`Scope`" which allows us to send messages, etc to the component.
-        let link = ctx.link();
 
-        // get maze rows
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        let link = ctx.link();
         let mut maze_rows = vec![];
-        for row_num in 0..self.M {
+        for row_num in 0..ctx.props().maze.m {
             maze_rows.push(html! {
                 <p style="margin:0; padding:0;" >
                     {
-                        self.grid[row_num*self.N..(row_num+1)*self.N].iter().map(|cell| html!{
-                            < CellComponent cell={ cell.clone() } />
+                        ctx.props().maze.cells[row_num*ctx.props().maze.n..(row_num+1)*ctx.props().maze.n]
+                            .iter()
+                            .enumerate()
+                            .map(|(j, cell)| html!{
+                                < CellView
+                                    cell={ cell.clone() }
+                                    pos={ (row_num, j) }
+                                    cell_clicked={ ctx.props().click_callback.clone() }
+                                />
                         }).collect::<Html>()
                     }
                 </p>
