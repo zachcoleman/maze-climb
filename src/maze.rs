@@ -129,6 +129,82 @@ impl Maze {
         }
     }
 
+    pub fn is_connected(&self, start: Position, stop: Position, path: &HashSet<Position>) -> bool {
+        // let's do BFS starting from our start position
+        let mut queue: Vec<Position> = vec![start];
+        let mut visited: HashSet<Position> = HashSet::new();
+
+        while queue.len() > 0 {
+            let mut tmp = vec![];
+            for p in &queue {
+                for dir in vec![
+                    Direction::Up,
+                    Direction::Down,
+                    Direction::Left,
+                    Direction::Right,
+                ] {
+                    if let Some(new_pos) = p.apply_move(dir) {
+                        // check if new_pos in path
+                        if path.contains(&new_pos) && !visited.contains(&new_pos) {
+                            // check correct walls are missing
+                            match dir {
+                                Direction::Left => {
+                                    // check left wall of pos and check right wall of new_pos
+                                    if self.cells[p.r * self.n + p.c].left == Wall::No
+                                        && self.cells[new_pos.r * self.n + new_pos.c].right
+                                            == Wall::No
+                                    {
+                                        if new_pos == stop {
+                                            return true;
+                                        }
+                                        tmp.push(new_pos);
+                                    }
+                                }
+                                Direction::Right => {
+                                    if self.cells[p.r * self.n + p.c].right == Wall::No
+                                        && self.cells[new_pos.r * self.n + new_pos.c].left
+                                            == Wall::No
+                                    {
+                                        if new_pos == stop {
+                                            return true;
+                                        }
+                                        tmp.push(new_pos);
+                                    }
+                                }
+                                Direction::Up => {
+                                    if self.cells[p.r * self.n + p.c].up == Wall::No
+                                        && self.cells[new_pos.r * self.n + new_pos.c].down
+                                            == Wall::No
+                                    {
+                                        if new_pos == stop {
+                                            return true;
+                                        }
+                                        tmp.push(new_pos);
+                                    }
+                                }
+                                Direction::Down => {
+                                    if self.cells[p.r * self.n + p.c].down == Wall::No
+                                        && self.cells[new_pos.r * self.n + new_pos.c].up == Wall::No
+                                    {
+                                        if new_pos == stop {
+                                            return true;
+                                        }
+                                        tmp.push(new_pos);
+                                    }
+                                }
+                            }
+                        }
+                        visited.insert(p.clone());
+                    }
+                }
+            }
+            // log::info!("old queue: {:?}", queue.clone());
+            // log::info!("new queue: {:?}", tmp.clone());
+            queue = tmp;
+        }
+        false
+    }
+
     pub fn is_position_valid(&self, p: Position) -> bool {
         p.r < self.m && p.c < self.n
     }
