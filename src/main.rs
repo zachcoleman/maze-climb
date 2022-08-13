@@ -66,6 +66,7 @@ impl Component for App {
                 self.maze.reset_maze();
                 self.maze.cut_up_maze(10);
                 self.path = HashSet::new();
+                self.solved = false;
                 true
             }
         }
