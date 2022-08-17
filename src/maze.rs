@@ -32,6 +32,7 @@ impl Maze {
     }
 
     /// make a Maze like a new closed-off Maze
+    #[allow(dead_code)]
     pub fn reset_maze(&mut self) {
         *self = Self::new(self.m, self.n);
     }

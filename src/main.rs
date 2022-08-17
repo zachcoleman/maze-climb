@@ -30,8 +30,8 @@ impl Component for App {
     type Properties = ();
 
     fn create(ctx: &Context<Self>) -> Self {
-        let mut game = game::Game::new();
-        let mut maze = game.get_maze();
+        let game = game::Game::new();
+        let maze = game.get_maze();
 
         let path: HashSet<Position> = HashSet::new();
 
@@ -42,7 +42,7 @@ impl Component for App {
             game: game,
             maze: maze,
             path: path,
-            lost: true,
+            lost: false,
             timer: 15,
             _interval: interval,
         }
