@@ -24,7 +24,10 @@ impl Game {
         // w/ simple formula:
         // level <= 10 -> 0.6 * level + 4
         // level >  10 -> 0.2 * level + 4
-        let tgt: usize = ((0.6 * self.level as f32) as usize) + 4;
+        let mut tgt: usize = ((0.6 * self.level as f32) as usize) + 4;
+        if self.level > 10 {
+            tgt = ((0.6 * self.level as f32) as usize) + 4;
+        }
         let diff: usize = usize::max((0.4 * tgt as f32) as usize, 1);
         let (m, n) = (
             thread_rng().gen_range((tgt - diff)..(tgt + diff)),

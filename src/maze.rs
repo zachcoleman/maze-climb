@@ -199,8 +199,6 @@ impl Maze {
                     }
                 }
             }
-            // log::info!("old queue: {:?}", queue.clone());
-            // log::info!("new queue: {:?}", tmp.clone());
             queue = tmp;
         }
         false

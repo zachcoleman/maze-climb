@@ -63,18 +63,20 @@ impl Component for App {
                 }
 
                 // check current path and see if complete
-                if self.maze.is_connected(
-                    position::Position { r: 0, c: 0 },
-                    position::Position {
-                        r: self.maze.m - 1,
-                        c: self.maze.n - 1,
-                    },
-                    &self.path,
-                ) {
-                    self.game.apply_win();
-                    self.maze = self.game.get_maze();
-                    self.path = HashSet::new();
-                    self.timer = 15;
+                if self.path.contains(&position::Position { r: 0, c: 0 }) {
+                    if self.maze.is_connected(
+                        position::Position { r: 0, c: 0 },
+                        position::Position {
+                            r: self.maze.m - 1,
+                            c: self.maze.n - 1,
+                        },
+                        &self.path,
+                    ) {
+                        self.game.apply_win();
+                        self.maze = self.game.get_maze();
+                        self.path = HashSet::new();
+                        self.timer = 15;
+                    }
                 }
                 true
             }
